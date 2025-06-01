@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -7,29 +8,24 @@ public class PlayerMovement : MonoBehaviour
     public float health = 10f;
     public float attackDamage = 2f;
 
-
-    // --- Movement Settings (Adjust in Inspector) ---
     public float moveSpeed = 5f;
     public float jumpForce = 8f;
     public float coyoteTime = 0.1f;
     public GameObject Enemy; // Consider making this an interface or a more generic type
     public Transform groundCheck;
     public LayerMask groundLayer;
+    public float fallThresholdY;
+    private Vector3 startPosition;
 
-    // --- Mouse Look Settings (Adjust in Inspector) ---
     public float mouseSensitivity = 100f;
 
-    // NEW: Raycast settings (Move these up with other public settings)
     public float interactionDistance = 20f; // How far the player can "point"
     public LayerMask interactableLayer;    // Select layers the raycast should hit (e.g., "Enemy" layer)
 
-
-    // --- Private References (Automatically assigned in Start) ---
     private Rigidbody rb;
     private Camera playerCamera;
     private Renderer playerRenderer; // For changing cube color
 
-    // --- Internal State Variables ---
     private float lastGroundedTime;
     private float xRotation = 0f; // Stores vertical camera rotation (pitch)
     private bool isGrounded;       // Tracks if the player is on the ground
@@ -56,6 +52,8 @@ public class PlayerMovement : MonoBehaviour
             Debug.LogWarning("Renderer not found on PlayerMovement script's GameObject. Color change functionality unavailable.");
         }
 
+        startPosition = transform.position;
+
         // Lock and hide the mouse cursor at the very start of the game
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -63,56 +61,15 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        // --- Player Movement (Horizontal - XZ Plane) ---
-        float horizontalInput = Input.GetAxis("Horizontal");
-        float verticalInput = Input.GetAxis("Vertical");
-        // Debug.Log($"Vertical Input: {verticalInput}"); // Temporarily remove debug logs if spamming
-        // Debug.Log($"Horizontal Input: {horizontalInput}"); // Temporarily remove debug logs if spamming
+        rb.linearVelocity = new Vector3(MoveDirection().x * moveSpeed, rb.linearVelocity.y, MoveDirection().z * moveSpeed);
 
+        JumpMovement();
 
-        Vector3 camForward = playerCamera != null ? playerCamera.transform.forward : Vector3.forward;
-        camForward.y = 0;
-        camForward.Normalize();
+        MouseLook();
 
-        Vector3 camRight = playerCamera != null ? playerCamera.transform.right : Vector3.right;
-        camRight.y = 0;
-        camRight.Normalize();
-
-        Vector3 moveDirection = camForward * verticalInput + camRight * horizontalInput;
-
-        if (moveDirection.magnitude > 1f)
+        if (transform.position.y < fallThresholdY)
         {
-            moveDirection.Normalize();
-        }
-
-        rb.linearVelocity = new Vector3(moveDirection.x * moveSpeed, rb.linearVelocity.y, moveDirection.z * moveSpeed);
-
-        // --- Jumping ---
-        isGrounded = Physics.CheckSphere(groundCheck.position, 0.2f, groundLayer);
-
-        if (isGrounded)
-        {
-            lastGroundedTime = Time.time;
-        }
-
-        if (Input.GetButtonDown("Jump") && (isGrounded || Time.time < lastGroundedTime + coyoteTime))
-        {
-            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-        }
-
-        // --- Mouse Look (POV Control) ---
-        // Only allow mouse look if the cursor is locked (i.e., we are in "gameplay" mode)
-        if (playerCamera != null && Cursor.lockState == CursorLockMode.Locked)
-        {
-            float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
-            float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
-
-            xRotation -= mouseY;
-            xRotation = Mathf.Clamp(xRotation, -90f, 90f);
-
-            playerCamera.transform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
-
-            transform.Rotate(Vector3.up * mouseX);
+            RespawnPlayer();
         }
 
         // --- Cursor Lock/Unlock & Primary Mouse Button Logic ---
@@ -140,33 +97,91 @@ public class PlayerMovement : MonoBehaviour
                     Debug.DrawRay(ray.origin, ray.direction * interactionDistance, Color.red); // Use interactionDistance for debug draw
                     RaycastHit hit;
 
-                    // Use the interactableLayer for the raycast if you want to filter what can be attacked
-                    if (Physics.Raycast(ray, out hit, interactionDistance, interactableLayer) && hit.collider.CompareTag("Enemy"))
+                    if (Physics.Raycast(transform.position, transform.TransformDirection(Vector3.forward), out hit, Mathf.Infinity, interactableLayer))
                     {
+                        Debug.DrawRay(transform.position, transform.TransformDirection(Vector3.forward) * hit.distance, Color.yellow);
                         Debug.Log("Hit Enemy: " + hit.collider.gameObject.name + " Dealing Damage: " + attackDamage);
                         // Apply damage
                         // EnemyHealth enemyHealth = hit.collider.GetComponent<EnemyHealth>();
                         // if (enemyHealth != null) { enemyHealth.TakeDamage(attackDamage); }
 
-                        // Change color for visual feedback
-                        if (Enemy != null && Enemy.GetComponent<Renderer>() != null)
-                        {
-                            Enemy.GetComponent<Renderer>().material.color = Color.blue;
-                        }
 
+                        Rigidbody enemyRb = hit.collider.GetComponent<Rigidbody>();
+                        enemyRb.AddForce(MoveDirection() * moveSpeed, ForceMode.Impulse);
+
+                        //hit.collider.GetComponent<Rigidbody>.linearVelocity = new Vector3(MoveDirection().x * moveSpeed, rb.linearVelocity.y, MoveDirection().z * moveSpeed);
+                        Renderer enemyRenderer = Enemy.GetComponent<Renderer>();
+                        StartCoroutine(FlashRed(enemyRenderer));
                     }
                     else
                     {
-                        Debug.Log("Left click but didn't hit an Enemy.");
+                        Debug.DrawRay(transform.position, transform.TransformDirection(Vector3.forward) * 1000, Color.white);
+                        Debug.Log("Did not Hit");
                     }
                 }
             }
         }
 
-        // --- Example: Change cube color on 'P' key press (Legacy Input Manager) ---
+        // color change logic
         if (Input.GetKeyDown(KeyCode.P))
         {
             ChangeCubeColor(Random.ColorHSV());
+        }
+    }
+
+    public Vector3 MoveDirection()
+    {
+        float horizontalInput = Input.GetAxis("Horizontal");
+        float verticalInput = Input.GetAxis("Vertical");
+        // Debug.Log($"Vertical Input: {verticalInput}");
+        // Debug.Log($"Horizontal Input: {horizontalInput}");
+
+        Vector3 camForward = playerCamera != null ? playerCamera.transform.forward : Vector3.forward;
+        camForward.y = 0;
+        camForward.Normalize();
+
+        Vector3 camRight = playerCamera != null ? playerCamera.transform.right : Vector3.right;
+        camRight.y = 0;
+        camRight.Normalize();
+
+        Vector3 moveDirection = camForward * verticalInput + camRight * horizontalInput;
+
+        if (moveDirection.magnitude > 1f)
+        {
+            moveDirection.Normalize();
+        }
+
+        return moveDirection;
+    }
+
+    public void JumpMovement()
+    {
+        isGrounded = Physics.CheckSphere(groundCheck.position, 0.2f, groundLayer);
+
+        if (isGrounded)
+        {
+            lastGroundedTime = Time.time;
+        }
+
+        if (Input.GetButtonDown("Jump") && (isGrounded || Time.time < lastGroundedTime + coyoteTime))
+        {
+            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+        }
+    }
+
+    public void MouseLook()
+    {
+        if (playerCamera != null && Cursor.lockState == CursorLockMode.Locked)
+        {
+            float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
+            float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
+
+            xRotation -= mouseY;
+            xRotation = Mathf.Clamp(xRotation, -90f, 90f);
+
+            playerCamera.transform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
+
+            transform.Rotate(Vector3.up * mouseX);
         }
     }
 
@@ -179,6 +194,20 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    public void RespawnPlayer()
+    {
+        transform.position = startPosition;
+
+        // reset velocity
+        if (rb != null)
+        {
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
+        Debug.Log("Player fell too far! Respawning to start position.");
+    }
+
     // --- Editor-only Visualization (No change needed here) ---
     void OnDrawGizmos()
     {
@@ -187,5 +216,15 @@ public class PlayerMovement : MonoBehaviour
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireSphere(groundCheck.position, 0.2f);
         }
+    }
+
+    IEnumerator FlashRed(Renderer rendererToFlash)
+    {
+        Color originalColor = rendererToFlash.material.color;
+        rendererToFlash.material.color = Color.red;
+
+        yield return new WaitForSeconds(0.2f);
+
+        rendererToFlash.material.color = originalColor;
     }
 }
