@@ -87,11 +87,13 @@ public class PlayerMovement : MonoBehaviour
         // --- Jumping ---
         isGrounded = Physics.CheckSphere(groundCheck.position, 0.2f, groundLayer);
 
-        if (isGrounded) {
+        if (isGrounded)
+        {
             lastGroundedTime = Time.time;
         }
 
-        if (Input.GetButtonDown("Jump") && (isGrounded || Time.time < lastGroundedTime + coyoteTime)) {
+        if (Input.GetButtonDown("Jump") && (isGrounded || Time.time < lastGroundedTime + coyoteTime))
+        {
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
         }
 
