@@ -1,17 +1,17 @@
 using UnityEngine;
 using System.Collections;
+using UnityEngine.UI;
 
 public class PlayerMovement : MonoBehaviour
 {
-    // Combat
-    public bool canAttack = true; // Use this to control if attacking is allowed
+    public bool canAttack = true;
+    public float defaultHealth = 10f;
     public float health = 10f;
     public float attackDamage = 2f;
 
     public float moveSpeed = 5f;
     public float jumpForce = 8f;
     public float coyoteTime = 0.1f;
-    public GameObject Enemy; // Consider making this an interface or a more generic type
     public Transform groundCheck;
     public LayerMask groundLayer;
     public float fallThresholdY;
@@ -19,16 +19,22 @@ public class PlayerMovement : MonoBehaviour
 
     public float mouseSensitivity = 100f;
 
-    public float interactionDistance = 20f; // How far the player can "point"
-    public LayerMask interactableLayer;    // Select layers the raycast should hit (e.g., "Enemy" layer)
+    public float interactionDistance = 20f;
+    public LayerMask interactableLayer;
 
     private Rigidbody rb;
     private Camera playerCamera;
-    private Renderer playerRenderer; // For changing cube color
+    private Renderer playerRenderer;
+    public Color playerColor;
+
+    public float deaths;
 
     private float lastGroundedTime;
-    private float xRotation = 0f; // Stores vertical camera rotation (pitch)
-    private bool isGrounded;       // Tracks if the player is on the ground
+    private float xRotation = 0f;
+    private bool isGrounded;
+
+    public Slider healthBarSlider;
+    public TMPro.TextMeshProUGUI healthTextDisplay;
 
     void Start()
     {
@@ -54,9 +60,10 @@ public class PlayerMovement : MonoBehaviour
 
         startPosition = transform.position;
 
-        // Lock and hide the mouse cursor at the very start of the game
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+
+        playerColor = Color.white;
     }
 
     void Update()
@@ -67,62 +74,69 @@ public class PlayerMovement : MonoBehaviour
 
         MouseLook();
 
-        if (transform.position.y < fallThresholdY)
+        if (transform.position.y < fallThresholdY || health <= 0)
         {
+            health = 0;
             RespawnPlayer();
         }
 
-        // --- Cursor Lock/Unlock & Primary Mouse Button Logic ---
         if (Input.GetKeyDown(KeyCode.Escape))
         {
-            // If Escape is pressed, unlock and show cursor
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
         }
-        else if (Input.GetMouseButtonDown(0)) // 0 is the left mouse button
+        else if (Input.GetMouseButtonDown(0))
         {
-            // If Left Mouse Button is clicked:
             if (Cursor.lockState == CursorLockMode.None)
             {
-                // If cursor was unlocked, lock it and hide it (resume gameplay)
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
             }
-            else // Cursor was already locked (we are in gameplay mode), so this is an attack/interact click
+            else
             {
-                // Attacking logic
-                if (canAttack) // Only attack if allowed
+                if (canAttack)
                 {
                     Ray ray = new Ray(playerCamera.transform.position, playerCamera.transform.forward);
-                    Debug.DrawRay(ray.origin, ray.direction * interactionDistance, Color.red); // Use interactionDistance for debug draw
+                    Debug.DrawRay(ray.origin, ray.direction * interactionDistance, Color.red);
                     RaycastHit hit;
 
-                    if (Physics.Raycast(transform.position, transform.TransformDirection(Vector3.forward), out hit, Mathf.Infinity, interactableLayer))
+                    if (Physics.Raycast(ray, out hit, interactionDistance, interactableLayer))
                     {
-                        Debug.DrawRay(transform.position, transform.TransformDirection(Vector3.forward) * hit.distance, Color.yellow);
-                        Debug.Log("Hit Enemy: " + hit.collider.gameObject.name + " Dealing Damage: " + attackDamage);
-                        // Apply damage
-                        // EnemyHealth enemyHealth = hit.collider.GetComponent<EnemyHealth>();
-                        // if (enemyHealth != null) { enemyHealth.TakeDamage(attackDamage); }
+                        if (hit.collider.CompareTag("Enemy"))
+                        {
+                            Debug.DrawRay(ray.origin, ray.direction * hit.distance, Color.yellow);
+                            Debug.Log("Hit Enemy: " + hit.collider.gameObject.name + " Dealing Damage: " + attackDamage);
 
+                            EnemyMovement enemyScript = hit.collider.GetComponent<EnemyMovement>();
+                            if (enemyScript != null)
+                            {
+                                enemyScript.TakeDamage(attackDamage);
+                            }
 
-                        Rigidbody enemyRb = hit.collider.GetComponent<Rigidbody>();
-                        enemyRb.AddForce(MoveDirection() * moveSpeed, ForceMode.Impulse);
-
-                        //hit.collider.GetComponent<Rigidbody>.linearVelocity = new Vector3(MoveDirection().x * moveSpeed, rb.linearVelocity.y, MoveDirection().z * moveSpeed);
-                        Renderer enemyRenderer = Enemy.GetComponent<Renderer>();
-                        StartCoroutine(FlashRed(enemyRenderer));
+                            Rigidbody enemyRb = hit.collider.GetComponent<Rigidbody>();
+                            if (enemyRb != null)
+                            {
+                                Vector3 pushDirection = ray.direction;
+                                pushDirection.y = 0.5f;
+                                pushDirection.Normalize();
+                                enemyRb.AddForce(pushDirection * 5f, ForceMode.Impulse);
+                            }
+                        }
+                        else
+                        {
+                            Debug.DrawRay(ray.origin, ray.direction * hit.distance, Color.white);
+                            Debug.Log("Hit: " + hit.collider.gameObject.name + " but it's not an Enemy.");
+                        }
                     }
                     else
                     {
-                        Debug.DrawRay(transform.position, transform.TransformDirection(Vector3.forward) * 1000, Color.white);
-                        Debug.Log("Did not Hit");
+                        Debug.DrawRay(ray.origin, ray.direction * interactionDistance, Color.white);
+                        Debug.Log("Did not Hit anything on interactableLayer.");
                     }
                 }
             }
         }
 
-        // color change logic
         if (Input.GetKeyDown(KeyCode.P))
         {
             ChangeCubeColor(Random.ColorHSV());
@@ -133,8 +147,6 @@ public class PlayerMovement : MonoBehaviour
     {
         float horizontalInput = Input.GetAxis("Horizontal");
         float verticalInput = Input.GetAxis("Vertical");
-        // Debug.Log($"Vertical Input: {verticalInput}");
-        // Debug.Log($"Horizontal Input: {horizontalInput}");
 
         Vector3 camForward = playerCamera != null ? playerCamera.transform.forward : Vector3.forward;
         camForward.y = 0;
@@ -185,30 +197,29 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    // --- Helper Method for Color Change (No change needed here) ---
     public void ChangeCubeColor(Color newColor)
     {
         if (playerRenderer != null && playerRenderer.material != null)
         {
             playerRenderer.material.color = newColor;
+            playerColor = newColor;
         }
     }
 
     public void RespawnPlayer()
     {
         transform.position = startPosition;
+        health = defaultHealth;
+        deaths += 1;
 
-        // reset velocity
         if (rb != null)
         {
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
         }
-
-        Debug.Log("Player fell too far! Respawning to start position.");
+        Debug.Log("Player respawning to start position.");
     }
 
-    // --- Editor-only Visualization (No change needed here) ---
     void OnDrawGizmos()
     {
         if (groundCheck != null)
@@ -218,13 +229,38 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    public void TakeDamage(float amount)
+    {
+        health -= amount;
+        Debug.Log("Player Health: " + health);
+
+        if (playerRenderer != null)
+        {
+            StartCoroutine(FlashRed(playerRenderer));
+        }
+
+        if (healthBarSlider != null)
+        {
+            healthBarSlider.value = health;
+        }
+        if (healthTextDisplay != null)
+        {
+            healthTextDisplay.text = Mathf.CeilToInt(health).ToString() + "/" + defaultHealth.ToString();
+        }
+
+        if (health <= 0)
+        {
+            health = 0;
+            RespawnPlayer();
+        }
+    }
+
     IEnumerator FlashRed(Renderer rendererToFlash)
     {
-        Color originalColor = rendererToFlash.material.color;
         rendererToFlash.material.color = Color.red;
 
         yield return new WaitForSeconds(0.2f);
 
-        rendererToFlash.material.color = originalColor;
+        rendererToFlash.material.color = playerColor;
     }
 }

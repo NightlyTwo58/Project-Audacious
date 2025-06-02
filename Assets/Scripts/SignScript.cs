@@ -6,8 +6,9 @@ public class SignScript : MonoBehaviour
     public TextMeshProUGUI scoreText;
 
     public PlayerMovement playerScript;
+    public EnemyMovement enemyScript;
 
-    public string scorePrefix = "Score: ";
+    public string scorePrefix = "The score is: \n";
 
     void Start()
     {
@@ -37,7 +38,6 @@ public class SignScript : MonoBehaviour
 
     void UpdateScoreDisplay()
     {
-        scoreText.text = scorePrefix + Mathf.RoundToInt(playerScript.health).ToString();
-        // For decimal health: scoreText.text = scorePrefix + playerScript.health.ToString("F1"); // "F1" for one decimal place
+        scoreText.text = scorePrefix + "Player: " + (enemyScript.deaths).ToString() + " Bot: " + (playerScript.deaths).ToString();
     }
 }
