@@ -63,6 +63,24 @@ public class PlayerMovement : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
+        health = defaultHealth;
+
+        if (healthBarSlider != null)
+        {
+            healthBarSlider.maxValue = defaultHealth;
+            healthBarSlider.minValue = 0f;
+            healthBarSlider.value = health;
+        }
+        else
+        {
+            Debug.LogWarning("Health Bar Slider not assigned to PlayerMovement script.");
+        }
+
+        if (healthTextDisplay != null)
+        {
+            healthTextDisplay.text = Mathf.CeilToInt(health).ToString() + "/" + defaultHealth.ToString();
+        }
+
         playerColor = Color.white;
     }
 
@@ -212,6 +230,9 @@ public class PlayerMovement : MonoBehaviour
         health = defaultHealth;
         deaths += 1;
 
+        healthBarSlider.value = health;
+        healthTextDisplay.text = Mathf.CeilToInt(health).ToString() + "/" + defaultHealth.ToString();
+
         if (rb != null)
         {
             rb.linearVelocity = Vector3.zero;
@@ -239,14 +260,8 @@ public class PlayerMovement : MonoBehaviour
             StartCoroutine(FlashRed(playerRenderer));
         }
 
-        if (healthBarSlider != null)
-        {
-            healthBarSlider.value = health;
-        }
-        if (healthTextDisplay != null)
-        {
-            healthTextDisplay.text = Mathf.CeilToInt(health).ToString() + "/" + defaultHealth.ToString();
-        }
+        healthBarSlider.value = health;
+        healthTextDisplay.text = Mathf.CeilToInt(health).ToString() + "/" + defaultHealth.ToString();
 
         if (health <= 0)
         {
