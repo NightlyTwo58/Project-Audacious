@@ -10,18 +10,19 @@ public class EnemyMovement : MonoBehaviour
     private Vector3 startPosition;
     public float deaths;
 
-    public float moveSpeed = 5f;
-    public float jumpForce = 8f;
+    public float moveSpeed = 4.5f;
+    public float jumpForce = 16f;
     public float coyoteTime = 0.1f;
     public Transform groundCheck;
     public LayerMask groundLayer;
+    public float pathfindingRayLength = 100f;
 
     public float decisionInterval = 2f;
-    public float jumpProbability = 0.2f;
+    public float randomMoveChance = 0.5f;
 
     public float attackDelay = 0.5f;
     public float attackRange = 10f;
-    public float knockbackForce = 10f;
+    public float knockbackForce = 13f;
 
     [SerializeField] private PlayerMovement playerScript;
     private Transform playerTransform;
@@ -32,7 +33,7 @@ public class EnemyMovement : MonoBehaviour
     private float lastAttackTime = 0f;
 
     private float nextDecisionTime;
-    private int currentHorizontalDirection = 0;
+    private Vector3 currentHorizontalMoveDirection;
 
     private float lastGroundedTime;
     private bool isGrounded;
@@ -42,16 +43,11 @@ public class EnemyMovement : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         if (rb == null)
         {
-            Debug.LogError(gameObject.name + ": Rigidbody not found! Enemy script disabled.");
             enabled = false;
             return;
         }
 
         enemyRenderer = GetComponent<Renderer>();
-        if (enemyRenderer == null)
-        {
-            Debug.LogWarning(gameObject.name + ": Renderer not found. Enemy color change functionality unavailable.");
-        }
 
         health = defaultHealth;
 
@@ -65,7 +61,6 @@ public class EnemyMovement : MonoBehaviour
 
             if (playerScript == null)
             {
-                Debug.LogError(gameObject.name + ": PlayerMovement script not found on Player! Enemy cannot attack player.");
                 enabled = false;
                 return;
             }
@@ -82,19 +77,29 @@ public class EnemyMovement : MonoBehaviour
         enemyColor = randomColor;
 
         nextDecisionTime = Time.time + decisionInterval;
+
+        Vector3 initialDirection = playerTransform.position - transform.position;
+        initialDirection.y = 0;
+        currentHorizontalMoveDirection = initialDirection.normalized;
     }
 
     void Update()
     {
         if (playerTransform == null) return;
 
-        AIBasicMovement();
-
-        Vector3 directionToPlayer = playerTransform.position - transform.position;
-        directionToPlayer.y = 0;
-        if (directionToPlayer != Vector3.zero)
+        isGrounded = Physics.CheckSphere(groundCheck.position, 0.2f, groundLayer);
+        if (isGrounded)
         {
-            Quaternion targetRotation = Quaternion.LookRotation(directionToPlayer);
+            lastGroundedTime = Time.time;
+        }
+
+        AIPursuitAndJump();
+
+        Vector3 directionToPlayerHorizontal = playerTransform.position - transform.position;
+        directionToPlayerHorizontal.y = 0;
+        if (directionToPlayerHorizontal != Vector3.zero)
+        {
+            Quaternion targetRotation = Quaternion.LookRotation(directionToPlayerHorizontal);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * moveSpeed);
         }
 
@@ -110,12 +115,9 @@ public class EnemyMovement : MonoBehaviour
                     Vector3 rayOrigin = transform.position + Vector3.up * 0.5f;
                     Vector3 rayDirection = (playerTransform.position - rayOrigin).normalized;
 
-                    Debug.DrawRay(rayOrigin, rayDirection * attackRange, Color.red, 0.5f);
-
                     if (Physics.Raycast(rayOrigin, rayDirection, out hit, attackRange) && hit.collider.CompareTag("Player"))
                     {
                         playerScript.TakeDamage(attackDamage);
-                        Debug.Log(gameObject.name + " hit Player: " + hit.collider.gameObject.name + " Dealing Damage: " + attackDamage);
 
                         Rigidbody playerRb = hit.collider.GetComponent<Rigidbody>();
                         if (playerRb != null)
@@ -126,46 +128,51 @@ public class EnemyMovement : MonoBehaviour
                             playerRb.AddForce(knockbackDirection * knockbackForce, ForceMode.Impulse);
                         }
                     }
-                    else
-                    {
-                        Debug.Log(gameObject.name + " tried to hit Player, but raycast was blocked or player moved!");
-                    }
-                }
-                else
-                {
-                    Debug.Log(gameObject.name + " intentionally missed Player.");
                 }
             }
         }
     }
 
-    void AIBasicMovement()
+    void AIPursuitAndJump()
     {
-        isGrounded = Physics.CheckSphere(groundCheck.position, 0.2f, groundLayer);
-        if (isGrounded)
-        {
-            lastGroundedTime = Time.time;
-        }
-
         if (Time.time >= nextDecisionTime)
         {
             nextDecisionTime = Time.time + decisionInterval;
 
-            currentHorizontalDirection = Random.Range(-1, 2);
-
-            if (Random.value < jumpProbability && (isGrounded || Time.time < lastGroundedTime + coyoteTime))
+            if (Random.value < randomMoveChance)
             {
-                rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+                Vector2 randomCircle = Random.insideUnitCircle.normalized;
+                currentHorizontalMoveDirection = new Vector3(randomCircle.x, 0, randomCircle.y);
+            }
+            else
+            {
+                Vector3 directionToPlayerTemp = playerTransform.position - transform.position;
+                directionToPlayerTemp.y = 0;
+                currentHorizontalMoveDirection = directionToPlayerTemp.normalized;
+            }
+
+            if (playerTransform.position.y > transform.position.y + 0.5f)
+            {
+                RaycastHit hit;
+                Vector3 rayOrigin = transform.position + Vector3.up * 0.5f;
+                Vector3 rayDirection = (playerTransform.position - rayOrigin).normalized;
+
+                if (!Physics.Raycast(rayOrigin, rayDirection, out hit, pathfindingRayLength, ~LayerMask.GetMask("Player", "Enemy")))
+                {
+                    if (isGrounded || Time.time < lastGroundedTime + coyoteTime)
+                    {
+                        rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+                    }
+                }
             }
         }
 
-        rb.linearVelocity = new Vector3(currentHorizontalDirection * moveSpeed, rb.linearVelocity.y, 0f);
+        rb.linearVelocity = new Vector3(currentHorizontalMoveDirection.x * moveSpeed, rb.linearVelocity.y, currentHorizontalMoveDirection.z * moveSpeed);
     }
 
     public void TakeDamage(float amount)
     {
         health -= amount;
-        Debug.Log("Enemy Health: " + health);
 
         if (enemyRenderer != null)
         {
@@ -191,24 +198,15 @@ public class EnemyMovement : MonoBehaviour
             rb.linearVelocity = Vector3.zero;
             rb.angularVelocity = Vector3.zero;
         }
-        Debug.Log(gameObject.name + " respawning.");
     }
 
     IEnumerator FlashRed(Renderer rendererToFlash)
     {
+        Color originalColor = rendererToFlash.material.color;
         rendererToFlash.material.color = Color.red;
 
         yield return new WaitForSeconds(0.2f);
 
-        rendererToFlash.material.color = enemyColor;
-    }
-
-    void OnDrawGizmos()
-    {
-        if (groundCheck != null)
-        {
-            Gizmos.color = Color.blue;
-            Gizmos.DrawWireSphere(groundCheck.position, 0.2f);
-        }
+        rendererToFlash.material.color = originalColor;
     }
 }
