@@ -1420,7 +1420,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 8
   fallThresholdY: 1
-  mouseSensitivity: 150
+  mouseSensitivity: 300
   interactionDistance: 20
   interactableLayer:
     serializedVersion: 2
