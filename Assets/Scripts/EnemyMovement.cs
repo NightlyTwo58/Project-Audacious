@@ -202,11 +202,10 @@ public class EnemyMovement : MonoBehaviour
 
     IEnumerator FlashRed(Renderer rendererToFlash)
     {
-        Color originalColor = rendererToFlash.material.color;
         rendererToFlash.material.color = Color.red;
 
         yield return new WaitForSeconds(0.2f);
 
-        rendererToFlash.material.color = originalColor;
+        rendererToFlash.material.color = enemyColor;
     }
 }
