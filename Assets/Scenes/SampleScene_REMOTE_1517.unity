@@ -241,6 +241,7 @@ GameObject:
   - component: {fileID: 229475003}
   - component: {fileID: 229475002}
   - component: {fileID: 229475006}
+  - component: {fileID: 229475007}
   m_Layer: 0
   m_Name: TargetSphere
   m_TagString: Enemy
@@ -334,12 +335,8 @@ Transform:
   m_LocalPosition: {x: -8.07705, y: 5.65, z: -4.93765}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-<<<<<<< Updated upstream
-  m_Children: []
-=======
   m_Children:
   - {fileID: 1773599809}
->>>>>>> Stashed changes
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!54 &229475006
@@ -369,8 +366,6 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
-<<<<<<< Updated upstream
-=======
 --- !u!114 &229475007
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -403,7 +398,6 @@ MonoBehaviour:
   knockbackForce: 13
   playerScript: {fileID: 1510680979}
   enemyColor: {r: 0, g: 0, b: 0, a: 0}
->>>>>>> Stashed changes
 --- !u!1 &245739648
 GameObject:
   m_ObjectHideFlags: 0
@@ -1180,8 +1174,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-<<<<<<< Updated upstream
-=======
 --- !u!1 &1352792578
 GameObject:
   m_ObjectHideFlags: 0
@@ -1290,7 +1282,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
->>>>>>> Stashed changes
 --- !u!1 &1510680969 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 6931645068581403339, guid: 1504832721dd0f44f892b3da78a6d4db, type: 3}
@@ -1341,12 +1332,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   canAttack: 1
+  defaultHealth: 10
   health: 10
   attackDamage: 2
   moveSpeed: 5
   jumpForce: 8
   coyoteTime: 0.1
-  Enemy: {fileID: 229475001}
   groundCheck: {fileID: 1687276480}
   groundLayer:
     serializedVersion: 2
@@ -1357,13 +1348,10 @@ MonoBehaviour:
   interactableLayer:
     serializedVersion: 2
     m_Bits: 1
-<<<<<<< Updated upstream
-=======
   playerColor: {r: 0, g: 0, b: 0, a: 0}
   deaths: 0
   healthBarSlider: {fileID: 0}
   healthTextDisplay: {fileID: 0}
->>>>>>> Stashed changes
 --- !u!1 &1538224453
 GameObject:
   m_ObjectHideFlags: 0
@@ -1416,10 +1404,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   scoreText: {fileID: 1538224456}
   playerScript: {fileID: 1510680979}
-<<<<<<< Updated upstream
-=======
   enemyScript: {fileID: 229475007}
->>>>>>> Stashed changes
   scorePrefix: 'Score: '
 --- !u!114 &1538224456
 MonoBehaviour:
@@ -1761,8 +1746,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-<<<<<<< Updated upstream
-=======
 --- !u!1 &1773599808
 GameObject:
   m_ObjectHideFlags: 0
@@ -1794,7 +1777,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 229475005}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
->>>>>>> Stashed changes
 --- !u!1 &1930497888
 GameObject:
   m_ObjectHideFlags: 0
@@ -1903,8 +1885,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-<<<<<<< Updated upstream
-=======
 --- !u!1001 &2061739247
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2141,7 +2121,6 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 297adf0f630a1774794c660ccf64bda0, type: 3}
->>>>>>> Stashed changes
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
