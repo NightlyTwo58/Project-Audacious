@@ -339,6 +339,9 @@ Transform:
 =======
   m_Children:
   - {fileID: 1773599809}
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -1181,7 +1184,10 @@ Transform:
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
 --- !u!1 &1352792578
 GameObject:
   m_ObjectHideFlags: 0
@@ -1363,6 +1369,9 @@ MonoBehaviour:
   deaths: 0
   healthBarSlider: {fileID: 0}
   healthTextDisplay: {fileID: 0}
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 --- !u!1 &1538224453
 GameObject:
@@ -1417,6 +1426,10 @@ MonoBehaviour:
   scoreText: {fileID: 1538224456}
   playerScript: {fileID: 1510680979}
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+  enemyScript: {fileID: 229475007}
+>>>>>>> Stashed changes
 =======
   enemyScript: {fileID: 229475007}
 >>>>>>> Stashed changes
@@ -1762,7 +1775,10 @@ Transform:
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
 --- !u!1 &1773599808
 GameObject:
   m_ObjectHideFlags: 0
@@ -1794,6 +1810,9 @@ Transform:
   m_Children: []
   m_Father: {fileID: 229475005}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 --- !u!1 &1930497888
 GameObject:
@@ -1904,7 +1923,10 @@ Transform:
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
+=======
+>>>>>>> Stashed changes
 --- !u!1001 &2061739247
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2141,6 +2163,9 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 297adf0f630a1774794c660ccf64bda0, type: 3}
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
