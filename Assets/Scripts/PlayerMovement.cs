@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using UnityEngine.UI;
+using TMPro; // Add this for TextMeshPro
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -8,6 +9,7 @@ public class PlayerMovement : MonoBehaviour
     public float defaultHealth = 10f;
     public float health = 10f;
     public float attackDamage = 2f;
+    public float knockbackForce = 10f; // Force this player applies to others
 
     public float moveSpeed = 5f;
     public float jumpForce = 8f;
@@ -34,7 +36,11 @@ public class PlayerMovement : MonoBehaviour
     private bool isGrounded;
 
     public Slider healthBarSlider;
-    public TMPro.TextMeshProUGUI healthTextDisplay;
+    public TextMeshProUGUI healthTextDisplay; // Corrected type to TMPro.TextMeshProUGUI
+
+    // For applying knockback in FixedUpdate
+    private Vector3 pendingKnockbackForce = Vector3.zero;
+    private bool hasPendingKnockback = false;
 
     void Start()
     {
@@ -86,10 +92,7 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        rb.linearVelocity = new Vector3(MoveDirection().x * moveSpeed, rb.linearVelocity.y, MoveDirection().z * moveSpeed);
-
-        JumpMovement();
-
+        JumpMovement(); // Jump input happens in Update, but force applied in FixedUpdate
         MouseLook();
 
         if (transform.position.y < fallThresholdY || health <= 0)
@@ -126,18 +129,12 @@ public class PlayerMovement : MonoBehaviour
                             Debug.Log("Hit Enemy: " + hit.collider.gameObject.name + " Dealing Damage: " + attackDamage);
 
                             EnemyMovement enemyScript = hit.collider.GetComponent<EnemyMovement>();
-                            if (enemyScript != null)
+
+                            if (enemyScript != null) // Always check for null
                             {
                                 enemyScript.TakeDamage(attackDamage);
-                            }
-
-                            Rigidbody enemyRb = hit.collider.GetComponent<Rigidbody>();
-                            if (enemyRb != null)
-                            {
-                                Vector3 pushDirection = ray.direction;
-                                pushDirection.y = 0.5f;
-                                pushDirection.Normalize();
-                                enemyRb.AddForce(pushDirection * 5f, ForceMode.Impulse);
+                                // Player applies knockback to the enemy
+                                enemyScript.ApplyKnockback(transform.position, knockbackForce);
                             }
                         }
                         else
@@ -158,6 +155,30 @@ public class PlayerMovement : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.P))
         {
             ChangeCubeColor(Random.ColorHSV());
+        }
+    }
+
+    void FixedUpdate() // All physics movement should be here
+    {
+        // Player's primary movement
+        Vector3 targetHorizontalVelocity = MoveDirection() * moveSpeed;
+        Vector3 currentHorizontalVelocity = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
+        Vector3 horizontalVelocityChange = targetHorizontalVelocity - currentHorizontalVelocity;
+        rb.AddForce(horizontalVelocityChange, ForceMode.VelocityChange);
+
+        // Apply pending knockback
+        if (hasPendingKnockback)
+        {
+            rb.AddForce(pendingKnockbackForce, ForceMode.Impulse);
+            pendingKnockbackForce = Vector3.zero;
+            hasPendingKnockback = false;
+        }
+
+        // Ground check for FixedUpdate (more reliable for physics)
+        isGrounded = Physics.CheckSphere(groundCheck.position, 0.2f, groundLayer);
+        if (isGrounded)
+        {
+            lastGroundedTime = Time.time;
         }
     }
 
@@ -186,15 +207,10 @@ public class PlayerMovement : MonoBehaviour
 
     public void JumpMovement()
     {
-        isGrounded = Physics.CheckSphere(groundCheck.position, 0.2f, groundLayer);
-
-        if (isGrounded)
-        {
-            lastGroundedTime = Time.time;
-        }
-
         if (Input.GetButtonDown("Jump") && (isGrounded || Time.time < lastGroundedTime + coyoteTime))
         {
+            // Clear current vertical velocity to ensure consistent jump height
+            rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
             rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
         }
     }
@@ -257,6 +273,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (playerRenderer != null)
         {
+            StopCoroutine("FlashRed"); // Stop any previous flash to start a new one cleanly
             StartCoroutine(FlashRed(playerRenderer));
         }
 
@@ -267,6 +284,26 @@ public class PlayerMovement : MonoBehaviour
         {
             health = 0;
             RespawnPlayer();
+        }
+    }
+
+    // This method is called by external objects (like Enemy or Cactus) to knock back the player
+    public void ApplyKnockback(Vector3 sourcePosition, float force)
+    {
+        if (rb != null)
+        {
+            Vector3 knockbackDirection = transform.position - sourcePosition;
+            knockbackDirection.y = 0;
+            knockbackDirection.Normalize();
+
+            knockbackDirection.y = 0.2f;
+            knockbackDirection.Normalize();
+
+            // Store the force to be applied in FixedUpdate
+            pendingKnockbackForce = knockbackDirection * force;
+            hasPendingKnockback = true;
+
+            Debug.Log(gameObject.name + " pending knockback by force: " + force);
         }
     }
 

@@ -6716,7 +6716,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 34e2b6a06d65a094995fa5c4ddd9befb, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -6865,7 +6865,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 34e2b6a06d65a094995fa5c4ddd9befb, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -7269,6 +7269,7 @@ MonoBehaviour:
   health: 20
   attackDamage: 2
   accuracy: 0.7
+  fallThresholdY: 1
   deaths: 0
   moveSpeed: 4.5
   jumpForce: 16
@@ -7283,6 +7284,7 @@ MonoBehaviour:
   attackDelay: 0.3
   attackRange: 10
   knockbackForce: 13
+  selfKnockbackResistance: 1
   playerScript: {fileID: 1510680979}
   enemyColor: {r: 0, g: 0, b: 0, a: 0}
 --- !u!1 &233207147
@@ -7295,7 +7297,7 @@ GameObject:
   m_Component:
   - component: {fileID: 233207148}
   m_Layer: 0
-  m_Name: Jump Pad DK CACTUS
+  m_Name: JumptPad
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -8021,7 +8023,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 34e2b6a06d65a094995fa5c4ddd9befb, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -9081,8 +9083,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 421548760}
+  - component: {fileID: 421548761}
   m_Layer: 3
-  m_Name: DK CACTUSSSSSSS
+  m_Name: JumpPad_Cactus
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -9106,6 +9109,23 @@ Transform:
   - {fileID: 1339043222}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &421548761
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 421548759}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cc466cf29f70037418f16611294844c7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  damageAmount: 2
+  damageInterval: 0.5
+  damageRange: 3
+  knockbackForce: 13
+  playerScript: {fileID: 1510680979}
 --- !u!1 &425715895
 GameObject:
   m_ObjectHideFlags: 0
@@ -12793,7 +12813,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 34e2b6a06d65a094995fa5c4ddd9befb, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -17061,7 +17081,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 34e2b6a06d65a094995fa5c4ddd9befb, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -18393,6 +18413,7 @@ MonoBehaviour:
   defaultHealth: 10
   health: 10
   attackDamage: 2
+  knockbackForce: 15
   moveSpeed: 5
   jumpForce: 8
   coyoteTime: 0.1
@@ -19548,8 +19569,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1628933045}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -38.52, y: 6.074, z: -2.4}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 17.96, y: 6.074, z: -3.6000001}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -19569,8 +19590,13 @@ Transform:
   - {fileID: 553548556}
   - {fileID: 1163418422}
   - {fileID: 1716407443}
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 1632336044}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!4 &1632336044 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 1535327452297931914, guid: a9caee16380143f42ad5b1cc99e451ae, type: 3}
+  m_PrefabInstance: {fileID: 1728362081}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1657746994
 GameObject:
   m_ObjectHideFlags: 0
@@ -20269,7 +20295,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 34e2b6a06d65a094995fa5c4ddd9befb, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -20612,7 +20638,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 1535327452297931914, guid: a9caee16380143f42ad5b1cc99e451ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1628933046}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: a9caee16380143f42ad5b1cc99e451ae, type: 3}
 --- !u!1 &1731670836
@@ -23045,5 +23074,4 @@ SceneRoots:
   - {fileID: 1949824502}
   - {fileID: 1254399216}
   - {fileID: 233207148}
-  - {fileID: 1628933046}
   - {fileID: 421548760}
