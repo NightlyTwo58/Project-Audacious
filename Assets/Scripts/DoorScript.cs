@@ -1,28 +1,36 @@
 using UnityEngine;
-using System.Collections; // Required for Coroutines
+using System.Collections;
 
 public class DoorController : MonoBehaviour
 {
     public float rotationAngle = 90f;
     public float rotationSpeed = 2f;
     public bool isOpen = false;
-    private Quaternion initialRotation;
-    private Quaternion openRotation;
+
+    [SerializeField] private Transform doorAxel;
+    private Quaternion closedRotation;
+    private Transform playerTransform;
+    private bool isRotating = false;
+
     public float interactionDistance = 5f;
 
     void Start()
     {
-        initialRotation = transform.localRotation;
-        openRotation = initialRotation * Quaternion.Euler(0, rotationAngle, 0);
-        if (GetComponent<Collider>() == null)
+        if (doorAxel == null)
         {
-            Debug.LogWarning("DoorController: No Collider found on " + gameObject.name + ". Raycasting will not work correctly without a Collider.", this);
+            Debug.LogError("DoorController: 'doorAxel' Transform is not assigned. Please assign the GameObject representing the door's axel in the Inspector.", this);
+            enabled = false;
+            return;
         }
+
+        closedRotation = doorAxel.rotation;
+
+        GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+        playerTransform = playerObject.transform;
     }
 
     void Update()
     {
-        // Right-click
         if (Input.GetMouseButtonDown(1))
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -40,33 +48,54 @@ public class DoorController : MonoBehaviour
 
     public void ToggleDoor()
     {
-        isOpen = !isOpen;
+        if (isRotating) return;
+
+        isRotating = true;
         StopAllCoroutines();
+
+        Quaternion targetRotation;
 
         if (isOpen)
         {
-            StartCoroutine(RotateDoor(openRotation));
+            targetRotation = closedRotation;
         }
         else
         {
-            StartCoroutine(RotateDoor(initialRotation));
+            Vector3 playerDir = playerTransform.position - doorAxel.position;
+            playerDir.y = 0;
+
+            Vector3 doorLocalForward = transform.position - doorAxel.position;
+            doorLocalForward.y = 0;
+
+            float crossProductY = Vector3.Cross(doorLocalForward.normalized, playerDir.normalized).y;
+
+            if (crossProductY < 0)
+            {
+                targetRotation = closedRotation * Quaternion.Euler(0, rotationAngle, 0);
+            }
+            else
+            {
+                targetRotation = closedRotation * Quaternion.Euler(0, -rotationAngle, 0);
+            }
         }
+
+        StartCoroutine(RotateDoorSmoothly(targetRotation));
     }
 
-    private IEnumerator RotateDoor(Quaternion targetRotation)
+    private IEnumerator RotateDoorSmoothly(Quaternion targetRotation)
     {
         float time = 0;
-        Quaternion startRotation = transform.localRotation; // Store the door's current rotation when the coroutine starts
+        Quaternion startRotation = doorAxel.rotation;
 
         while (time < 1)
         {
-            transform.localRotation = Quaternion.Slerp(startRotation, targetRotation, time);
-
+            doorAxel.rotation = Quaternion.Slerp(startRotation, targetRotation, time);
             time += Time.deltaTime * rotationSpeed;
-
             yield return null;
         }
 
-        transform.localRotation = targetRotation;
+        doorAxel.rotation = targetRotation;
+        isOpen = !isOpen;
+        isRotating = false;
     }
 }
