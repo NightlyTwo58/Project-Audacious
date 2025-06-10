@@ -1,66 +1,70 @@
 using UnityEngine;
 using System.Collections;
 
-public class EnemyMovement : MonoBehaviour
+public class EnemyMovement : Movement
 {
-    public float defaultHealth = 10f;
-    public float health = 10f;
-    public float attackDamage = 2f;
-    public float accuracy = 0.7f;
-    private Vector3 startPosition;
-    public float fallThresholdY;
-    public float deaths;
-
     public float moveSpeed = 4.5f;
     public float jumpForce = 16f;
-    public float coyoteTime = 0.1f;
     public Transform groundCheck;
     public LayerMask groundLayer;
     public float pathfindingRayLength = 100f;
 
-    public float decisionInterval = 2f;
-    public float randomMoveChance = 0.5f;
+    public float decisionInterval = 0.5f;
+    public float randomMoveChance = 0.1f;
 
     public float attackDelay = 0.5f;
     public float attackRange = 10f;
-    public float knockbackForce = 13f; // Force this enemy applies to others
-    public float selfKnockbackResistance = 1.0f; // How much *this enemy* resists knockback
+    public float accuracy = 0.7f;
+    public float selfKnockbackResistance = 1.0f;
 
-    [SerializeField] private PlayerMovement playerScript;
-    private Transform playerTransform;
+    [SerializeField] protected PlayerMovement playerScript;
+    protected Transform playerTransform;
 
-    public Color enemyColor;
-    private Rigidbody rb;
-    private Renderer enemyRenderer;
-    private float lastAttackTime = 0f;
+    protected float lastAttackTime = 0f;
+    protected float nextDecisionTime;
+    protected Vector3 currentHorizontalMoveDirection;
 
-    private float nextDecisionTime;
-    private Vector3 currentHorizontalMoveDirection;
+    protected Vector3 pendingKnockbackForce = Vector3.zero;
+    protected bool hasPendingKnockback = false;
 
-    private float lastGroundedTime;
-    private bool isGrounded;
-
-    // For applying knockback in FixedUpdate
-    private Vector3 pendingKnockbackForce = Vector3.zero;
-    private bool hasPendingKnockback = false;
-
-    void Start()
+    protected override void Awake()
     {
-        rb = GetComponent<Rigidbody>();
-        if (rb == null)
+        base.Awake();
+        rigidBody = GetComponent<Rigidbody>();
+        if (rigidBody == null)
         {
+            Debug.LogError("Rigidbody not found on EnemyMovement script's GameObject! Movement disabled.");
             enabled = false;
             return;
         }
 
-        enemyRenderer = GetComponent<Renderer>();
-        if (enemyRenderer == null)
+        if (entityRenderer == null)
         {
-
+            Debug.LogWarning("Renderer not found on EnemyMovement script's GameObject.");
+        }
+        else
+        {
+            entityRenderer.material.color = Random.ColorHSV();
+            defaultColor = entityRenderer.material.color;
         }
 
-        health = defaultHealth;
+        InitializePlayerReference();
 
+        nextDecisionTime = Time.time + decisionInterval;
+        if (playerTransform != null)
+        {
+            Vector3 initialDirection = playerTransform.position - transform.position;
+            initialDirection.y = 0;
+            currentHorizontalMoveDirection = initialDirection.normalized;
+        }
+        else
+        {
+            currentHorizontalMoveDirection = Vector3.forward;
+        }
+    }
+
+    protected virtual void InitializePlayerReference()
+    {
         if (playerScript == null)
         {
             GameObject playerObj = GameObject.FindWithTag("Player");
@@ -71,75 +75,68 @@ public class EnemyMovement : MonoBehaviour
 
             if (playerScript == null)
             {
+                Debug.LogWarning("PlayerMovement script not found on GameObject with tag 'Player'. Enemy AI might not function correctly.");
                 enabled = false;
                 return;
             }
         }
         playerTransform = playerScript.transform;
+    }
 
-        startPosition = transform.position;
+    protected override void Update()
+    {
+        base.Update();
 
-        Color randomColor = Random.ColorHSV();
-        if (enemyRenderer != null)
-        {
-            enemyRenderer.material.color = randomColor;
-        }
-        enemyColor = randomColor;
+        if (playerTransform == null) return;
+
+        MakeDecision();
+        FacePlayer();
+        PerformAttack();
+    }
+
+    protected virtual void MakeDecision()
+    {
+        if (Time.time < nextDecisionTime) return;
 
         nextDecisionTime = Time.time + decisionInterval;
 
-        Vector3 initialDirection = playerTransform.position - transform.position;
-        initialDirection.y = 0;
-        currentHorizontalMoveDirection = initialDirection.normalized;
-    }
-
-    void Update()
-    {
-        if (playerTransform == null) return;
-
-        if (transform.position.y < fallThresholdY || health <= 0)
+        if (Random.value < randomMoveChance)
         {
-            health = 0;
-            RespawnEnemy();
+            Vector2 randomCircle = Random.insideUnitCircle.normalized;
+            currentHorizontalMoveDirection = new Vector3(randomCircle.x, 0, randomCircle.y);
+        }
+        else
+        {
+            Vector3 directionToPlayerTemp = playerTransform.position - transform.position;
+            directionToPlayerTemp.y = 0;
+            currentHorizontalMoveDirection = directionToPlayerTemp.normalized;
         }
 
-        if (Time.time >= nextDecisionTime)
+        AttemptJump();
+    }
+
+    protected virtual void AttemptJump()
+    {
+        if (playerTransform.position.y > transform.position.y + 0.5f)
         {
-            nextDecisionTime = Time.time + decisionInterval;
+            RaycastHit hit;
+            Vector3 rayOrigin = transform.position + Vector3.up * 0.5f;
+            Vector3 rayDirection = (playerTransform.position - rayOrigin).normalized;
 
-            if (Random.value < randomMoveChance)
+            if (!Physics.Raycast(rayOrigin, rayDirection, out hit, pathfindingRayLength, ~LayerMask.GetMask("Player", "Enemy")))
             {
-                Vector2 randomCircle = Random.insideUnitCircle.normalized;
-                currentHorizontalMoveDirection = new Vector3(randomCircle.x, 0, randomCircle.y);
-            }
-            else
-            {
-                Vector3 directionToPlayerTemp = playerTransform.position - transform.position;
-                directionToPlayerTemp.y = 0;
-                currentHorizontalMoveDirection = directionToPlayerTemp.normalized;
-            }
-
-            // Jumping logic initiation
-            if (playerTransform.position.y > transform.position.y + 0.5f)
-            {
-                RaycastHit hit;
-                Vector3 rayOrigin = transform.position + Vector3.up * 0.5f;
-                Vector3 rayDirection = (playerTransform.position - rayOrigin).normalized;
-
-                if (!Physics.Raycast(rayOrigin, rayDirection, out hit, pathfindingRayLength, ~LayerMask.GetMask("Player", "Enemy")))
+                isGrounded = Physics.CheckSphere(groundCheck.position, 0.2f, groundLayer);
+                if (isGrounded || Time.time < lastGroundedTime + coyoteTime)
                 {
-                    isGrounded = Physics.CheckSphere(groundCheck.position, 0.2f, groundLayer);
-                    if (isGrounded || Time.time < lastGroundedTime + coyoteTime)
-                    {
-                        // Clear current vertical velocity to ensure consistent jump height
-                        rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
-                        rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
-                    }
+                    rigidBody.linearVelocity = new Vector3(rigidBody.linearVelocity.x, 0, rigidBody.linearVelocity.z);
+                    rigidBody.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
                 }
             }
         }
+    }
 
-        // Enemy rotation (non-physics)
+    protected virtual void FacePlayer()
+    {
         Vector3 directionToPlayerHorizontal = playerTransform.position - transform.position;
         directionToPlayerHorizontal.y = 0;
         if (directionToPlayerHorizontal != Vector3.zero)
@@ -147,114 +144,67 @@ public class EnemyMovement : MonoBehaviour
             Quaternion targetRotation = Quaternion.LookRotation(directionToPlayerHorizontal);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * moveSpeed);
         }
+    }
 
-        // Attack timing and raycast (non-physics, event-driven)
-        if (Time.time >= lastAttackTime + attackDelay)
+    protected virtual void PerformAttack()
+    {
+        if (Time.time < lastAttackTime + attackDelay) return;
+        if (Vector3.Distance(transform.position, playerTransform.position) > attackRange) return;
+
+        lastAttackTime = Time.time;
+        if (Random.value < accuracy)
         {
-            if (Vector3.Distance(transform.position, playerTransform.position) <= attackRange)
+            RaycastHit hit;
+            Vector3 rayOrigin = transform.position + Vector3.up * 0.5f;
+            Vector3 rayDirection = (playerTransform.position - rayOrigin).normalized;
+
+            if (Physics.Raycast(rayOrigin, rayDirection, out hit, attackRange) && hit.collider.CompareTag("Player"))
             {
-                lastAttackTime = Time.time;
-
-                if (Random.value < accuracy)
-                {
-                    RaycastHit hit;
-                    Vector3 rayOrigin = transform.position + Vector3.up * 0.5f;
-                    Vector3 rayDirection = (playerTransform.position - rayOrigin).normalized;
-
-                    if (Physics.Raycast(rayOrigin, rayDirection, out hit, attackRange) && hit.collider.CompareTag("Player"))
-                    {
-                        // Enemy calls Player's methods
-                        Debug.Log("Hit player: " + hit.collider.gameObject.name + " Dealing Damage: " + attackDamage);
-
-                        playerScript.TakeDamage(attackDamage);
-                        playerScript.ApplyKnockback(transform.position, knockbackForce); // Enemy's position is the source
-                    }
-                }
+                playerScript.TakeDamage(attackDamage);
+                playerScript.ApplyKnockback(transform.position, knockbackForce);
             }
         }
     }
 
-    void FixedUpdate() // All physics calculations should go here
+    protected virtual void FixedUpdate()
     {
-        // Ground check for FixedUpdate
         isGrounded = Physics.CheckSphere(groundCheck.position, 0.2f, groundLayer);
         if (isGrounded)
         {
             lastGroundedTime = Time.time;
         }
 
-        // Apply enemy horizontal movement force
         Vector3 targetVelocity = currentHorizontalMoveDirection * moveSpeed;
-        Vector3 velocityChange = targetVelocity - new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
-        rb.AddForce(velocityChange, ForceMode.VelocityChange);
+        Vector3 velocityChange = targetVelocity - new Vector3(rigidBody.linearVelocity.x, 0, rigidBody.linearVelocity.z);
+        rigidBody.AddForce(velocityChange, ForceMode.VelocityChange);
 
-        // Apply pending knockback (if any)
         if (hasPendingKnockback)
         {
-            rb.AddForce(pendingKnockbackForce, ForceMode.Impulse);
+            rigidBody.AddForce(pendingKnockbackForce * selfKnockbackResistance, ForceMode.Impulse);
             pendingKnockbackForce = Vector3.zero;
             hasPendingKnockback = false;
         }
     }
 
-    public void TakeDamage(float amount)
+    public override void ApplyKnockback(Vector3 sourcePosition, float force)
     {
-        health -= amount;
-        Debug.Log(gameObject.name + " Health: " + health);
+        Vector3 knockbackDirection = transform.position - sourcePosition;
+        knockbackDirection.y = 0;
+        knockbackDirection.Normalize();
 
-        if (enemyRenderer != null)
-        {
-            StopCoroutine("FlashRed");
-            StartCoroutine(FlashRed(enemyRenderer));
-        }
+        knockbackDirection.y = 0.1f;
+        knockbackDirection.Normalize();
 
-        if (health <= 0)
-        {
-            health = 0;
-            RespawnEnemy();
-        }
+        pendingKnockbackForce = knockbackDirection * force;
+        hasPendingKnockback = true;
     }
 
-    public void RespawnEnemy()
+    protected override void Respawn()
     {
-        transform.position = startPosition;
-        health = defaultHealth;
-        deaths += 1;
-
-        if (rb != null)
-        {
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
-        }
-        Debug.Log(gameObject.name + " respawning to start position.");
+        base.Respawn();
     }
 
-    // This method is called by external objects (like Player or Cactus) to knock back this enemy
-    public void ApplyKnockback(Vector3 sourcePosition, float force)
-    {
-        if (rb != null)
-        {
-            Vector3 knockbackDirection = transform.position - sourcePosition;
-            knockbackDirection.y = 0;
-            knockbackDirection.Normalize();
-
-            knockbackDirection.y = 0.1f;
-            knockbackDirection.Normalize();
-
-            // Apply resistance if enemy has it
-            rb.AddForce(knockbackDirection * force * selfKnockbackResistance, ForceMode.Impulse);
-            Debug.Log(gameObject.name + " knocked back by force: " + force * selfKnockbackResistance);
-        }
-    }
-
-    IEnumerator FlashRed(Renderer rendererToFlash)
-    {
-        rendererToFlash.material.color = Color.red;
-        yield return new WaitForSeconds(0.2f);
-        rendererToFlash.material.color = enemyColor;
-    }
-
-    void OnDrawGizmos()
+    protected virtual void OnDrawGizmos()
     {
         if (groundCheck != null)
         {
