@@ -13,9 +13,11 @@ public class PlayerMovement : MonoBehaviour
 
     public float moveSpeed = 5f;
     public float jumpForce = 8f;
+    public float gravity = -9.81f;
     public float coyoteTime = 0.1f;
-    public Transform groundCheck;
-    public LayerMask groundLayer;
+    // We won't need groundCheck or groundLayer directly for CharacterController.isGrounded
+    // public Transform groundCheck;
+    // public LayerMask groundLayer;
     public float fallThresholdY;
     private Vector3 startPosition;
 
@@ -24,7 +26,7 @@ public class PlayerMovement : MonoBehaviour
     public float interactionDistance = 20f;
     public LayerMask interactableLayer;
 
-    private Rigidbody rb;
+    private CharacterController controller; // Changed from Rigidbody to CharacterController
     private Camera playerCamera;
     private Renderer playerRenderer;
     public Color playerColor;
@@ -33,21 +35,21 @@ public class PlayerMovement : MonoBehaviour
 
     private float lastGroundedTime;
     private float xRotation = 0f;
-    private bool isGrounded;
+    private Vector3 verticalVelocity;
 
     public Slider healthBarSlider;
-    public TextMeshProUGUI healthTextDisplay; // Corrected type to TMPro.TextMeshProUGUI
+    public TextMeshProUGUI healthTextDisplay;
 
-    // For applying knockback in FixedUpdate
-    private Vector3 pendingKnockbackForce = Vector3.zero;
-    private bool hasPendingKnockback = false;
+    // For applying knockback with CharacterController (different approach needed)
+    private Vector3 currentKnockbackVelocity = Vector3.zero;
+    public float knockbackDecay = 5f; // How quickly knockback force dissipates
 
     void Start()
     {
-        rb = GetComponent<Rigidbody>();
-        if (rb == null)
+        controller = GetComponent<CharacterController>(); // Get the CharacterController
+        if (controller == null)
         {
-            Debug.LogError("Rigidbody not found on PlayerMovement script's GameObject! Movement disabled.");
+            Debug.LogError("CharacterController not found on PlayerMovement script's GameObject! Movement disabled.");
             enabled = false;
             return;
         }
@@ -92,7 +94,12 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
-        JumpMovement(); // Jump input happens in Update, but force applied in FixedUpdate
+        // Handle horizontal movement
+        HandleMovement();
+
+        // Handle vertical movement (gravity and jump)
+        HandleJumpAndGravity();
+
         MouseLook();
 
         if (transform.position.y < fallThresholdY || health <= 0)
@@ -130,10 +137,9 @@ public class PlayerMovement : MonoBehaviour
 
                             EnemyMovement enemyScript = hit.collider.GetComponent<EnemyMovement>();
 
-                            if (enemyScript != null) // Always check for null
+                            if (enemyScript != null)
                             {
                                 enemyScript.TakeDamage(attackDamage);
-                                // Player applies knockback to the enemy
                                 enemyScript.ApplyKnockback(transform.position, knockbackForce);
                             }
                         }
@@ -158,61 +164,46 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    void FixedUpdate() // All physics movement should be here
-    {
-        // Player's primary movement
-        Vector3 targetHorizontalVelocity = MoveDirection() * moveSpeed;
-        Vector3 currentHorizontalVelocity = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
-        Vector3 horizontalVelocityChange = targetHorizontalVelocity - currentHorizontalVelocity;
-        rb.AddForce(horizontalVelocityChange, ForceMode.VelocityChange);
-
-        // Apply pending knockback
-        if (hasPendingKnockback)
-        {
-            rb.AddForce(pendingKnockbackForce, ForceMode.Impulse);
-            pendingKnockbackForce = Vector3.zero;
-            hasPendingKnockback = false;
-        }
-
-        // Ground check for FixedUpdate (more reliable for physics)
-        isGrounded = Physics.CheckSphere(groundCheck.position, 0.2f, groundLayer);
-        if (isGrounded)
-        {
-            lastGroundedTime = Time.time;
-        }
-    }
-
-    public Vector3 MoveDirection()
+    void HandleMovement()
     {
         float horizontalInput = Input.GetAxis("Horizontal");
         float verticalInput = Input.GetAxis("Vertical");
 
-        Vector3 camForward = playerCamera != null ? playerCamera.transform.forward : Vector3.forward;
-        camForward.y = 0;
-        camForward.Normalize();
+        Vector3 moveDirection = transform.right * horizontalInput + transform.forward * verticalInput;
+        moveDirection.Normalize(); // Normalize to prevent faster diagonal movement
 
-        Vector3 camRight = playerCamera != null ? playerCamera.transform.right : Vector3.right;
-        camRight.y = 0;
-        camRight.Normalize();
+        // Apply knockback first, then regular movement, and decay knockback
+        Vector3 totalMovement = (moveDirection * moveSpeed + currentKnockbackVelocity) * Time.deltaTime;
+        controller.Move(totalMovement + verticalVelocity * Time.deltaTime);
 
-        Vector3 moveDirection = camForward * verticalInput + camRight * horizontalInput;
-
-        if (moveDirection.magnitude > 1f)
+        // Decay knockback over time
+        if (currentKnockbackVelocity.magnitude > 0.1f) // Threshold to stop decaying
         {
-            moveDirection.Normalize();
+            currentKnockbackVelocity = Vector3.Lerp(currentKnockbackVelocity, Vector3.zero, knockbackDecay * Time.deltaTime);
         }
-
-        return moveDirection;
+        else
+        {
+            currentKnockbackVelocity = Vector3.zero; // Snap to zero to prevent tiny residual values
+        }
     }
 
-    public void JumpMovement()
+    void HandleJumpAndGravity()
     {
+        // isGrounded from CharacterController is more reliable than custom ground check
+        bool isGrounded = controller.isGrounded;
+
+        if (isGrounded && verticalVelocity.y < 0)
+        {
+            verticalVelocity.y = -2f; // Small downward force to keep grounded
+            lastGroundedTime = Time.time;
+        }
+
         if (Input.GetButtonDown("Jump") && (isGrounded || Time.time < lastGroundedTime + coyoteTime))
         {
-            // Clear current vertical velocity to ensure consistent jump height
-            rb.linearVelocity = new Vector3(rb.linearVelocity.x, 0, rb.linearVelocity.z);
-            rb.AddForce(Vector3.up * jumpForce, ForceMode.Impulse);
+            verticalVelocity.y = jumpForce;
         }
+
+        verticalVelocity.y += gravity * Time.deltaTime;
     }
 
     public void MouseLook()
@@ -249,22 +240,22 @@ public class PlayerMovement : MonoBehaviour
         healthBarSlider.value = health;
         healthTextDisplay.text = Mathf.CeilToInt(health).ToString() + "/" + defaultHealth.ToString();
 
-        if (rb != null)
-        {
-            rb.linearVelocity = Vector3.zero;
-            rb.angularVelocity = Vector3.zero;
-        }
+        // Reset CharacterController velocity after respawn
+        verticalVelocity = Vector3.zero;
+        currentKnockbackVelocity = Vector3.zero;
+
         Debug.Log("Player respawning to start position.");
     }
 
-    void OnDrawGizmos()
-    {
-        if (groundCheck != null)
-        {
-            Gizmos.color = Color.yellow;
-            Gizmos.DrawWireSphere(groundCheck.position, 0.2f);
-        }
-    }
+    // OnDrawGizmos is still useful for debugging, but groundCheck won't be used for CharacterController's isGrounded
+    // void OnDrawGizmos()
+    // {
+    //     if (groundCheck != null)
+    //     {
+    //         Gizmos.color = Color.yellow;
+    //         Gizmos.DrawWireSphere(groundCheck.position, 0.2f);
+    //     }
+    // }
 
     public void TakeDamage(float amount)
     {
@@ -273,7 +264,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (playerRenderer != null)
         {
-            StopCoroutine("FlashRed"); // Stop any previous flash to start a new one cleanly
+            StopCoroutine("FlashRed");
             StartCoroutine(FlashRed(playerRenderer));
         }
 
@@ -287,24 +278,18 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    // This method is called by external objects (like Enemy or Cactus) to knock back the player
     public void ApplyKnockback(Vector3 sourcePosition, float force)
     {
-        if (rb != null)
-        {
-            Vector3 knockbackDirection = transform.position - sourcePosition;
-            knockbackDirection.y = 0;
-            knockbackDirection.Normalize();
+        Vector3 knockbackDirection = transform.position - sourcePosition;
+        knockbackDirection.y = 0; // Keep knockback horizontal
+        knockbackDirection.Normalize();
 
-            knockbackDirection.y = 0.2f;
-            knockbackDirection.Normalize();
+        // Apply an upward component to the knockback for a more "bouncy" feel
+        knockbackDirection.y = 0.5f;
+        knockbackDirection.Normalize();
 
-            // Store the force to be applied in FixedUpdate
-            pendingKnockbackForce = knockbackDirection * force;
-            hasPendingKnockback = true;
-
-            Debug.Log(gameObject.name + " pending knockback by force: " + force);
-        }
+        currentKnockbackVelocity += knockbackDirection * force;
+        Debug.Log(gameObject.name + " applied knockback by force: " + force);
     }
 
     IEnumerator FlashRed(Renderer rendererToFlash)
