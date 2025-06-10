@@ -8127,6 +8127,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1886727190148412884, guid: bb358ffbd90e27e4395a59c50e03be3c, type: 3}
+      propertyPath: m_Layer
+      value: 7
+      objectReference: {fileID: 0}
     - target: {fileID: 2750506207781278938, guid: bb358ffbd90e27e4395a59c50e03be3c, type: 3}
       propertyPath: m_LocalPosition.x
       value: 2.1
@@ -8169,7 +8173,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3276037768334647346, guid: bb358ffbd90e27e4395a59c50e03be3c, type: 3}
       propertyPath: m_Name
-      value: TargetSphere (1)
+      value: TargetSphereLOS
+      objectReference: {fileID: 0}
+    - target: {fileID: 3276037768334647346, guid: bb358ffbd90e27e4395a59c50e03be3c, type: 3}
+      propertyPath: m_Layer
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 4030758720537084665, guid: bb358ffbd90e27e4395a59c50e03be3c, type: 3}
       propertyPath: m_Constraints
@@ -8209,12 +8217,11 @@ MonoBehaviour:
   defaultHealth: 10
   health: 10
   attackDamage: 2
-  accuracy: 0.7
+  knockbackForce: 13
   fallThresholdY: 0
   deaths: 0
   moveSpeed: 4.5
   jumpForce: 16
-  coyoteTime: 0.1
   groundCheck: {fileID: 1075467324}
   groundLayer:
     serializedVersion: 2
@@ -8224,10 +8231,10 @@ MonoBehaviour:
   randomMoveChance: 0.5
   attackDelay: 0.5
   attackRange: 10
-  knockbackForce: 13
+  accuracy: 0.7
   selfKnockbackResistance: 1
   playerScript: {fileID: 1510680979}
-  enemyColor: {r: 0, g: 0, b: 0, a: 0}
+  losCheckInterval: 0.1
 --- !u!1 &1080392115
 GameObject:
   m_ObjectHideFlags: 0
@@ -12236,26 +12243,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6848562568dd9ae40a7404218a6e941b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  canAttack: 1
   defaultHealth: 10
   health: 10
   attackDamage: 2
   knockbackForce: 15
+  fallThresholdY: 1
+  deaths: 0
+  canAttack: 1
   moveSpeed: 5
   jumpForce: 8
   gravity: -9.81
-  coyoteTime: 0.1
-  fallThresholdY: 1
   mouseSensitivity: 300
   interactionDistance: 20
   interactableLayer:
     serializedVersion: 2
     m_Bits: 1
-  playerColor: {r: 0, g: 0, b: 0, a: 0}
-  deaths: 0
   healthBarSlider: {fileID: 1625839713}
   healthTextDisplay: {fileID: 1538224456}
-  knockbackDecay: 5
 --- !u!143 &1510680983
 CharacterController:
   m_ObjectHideFlags: 0
@@ -16705,6 +16709,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1886727190148412884, guid: bb358ffbd90e27e4395a59c50e03be3c, type: 3}
+      propertyPath: m_Layer
+      value: 7
+      objectReference: {fileID: 0}
     - target: {fileID: 2750506207781278938, guid: bb358ffbd90e27e4395a59c50e03be3c, type: 3}
       propertyPath: m_LocalPosition.x
       value: -27.1
@@ -16748,6 +16756,10 @@ PrefabInstance:
     - target: {fileID: 3276037768334647346, guid: bb358ffbd90e27e4395a59c50e03be3c, type: 3}
       propertyPath: m_Name
       value: TargetSphere
+      objectReference: {fileID: 0}
+    - target: {fileID: 3276037768334647346, guid: bb358ffbd90e27e4395a59c50e03be3c, type: 3}
+      propertyPath: m_Layer
+      value: 7
       objectReference: {fileID: 0}
     - target: {fileID: 7857673394981192180, guid: bb358ffbd90e27e4395a59c50e03be3c, type: 3}
       propertyPath: playerScript
