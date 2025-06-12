@@ -92,6 +92,15 @@ public abstract class Movement : MonoBehaviour
         // Reset velocity for CharacterController-based characters (handled in PlayerMovement's Respawn)
     }
 
+    public void ChangeColor(Color newColor)
+    {
+        if (entityRenderer != null && entityRenderer.material != null)
+        {
+            entityRenderer.material.color = newColor;
+            defaultColor = newColor;
+        }
+    }
+
     protected IEnumerator FlashRed(Renderer rendererToFlash)
     {
         rendererToFlash.material.color = Color.red;

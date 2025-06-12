@@ -174,15 +174,6 @@ public class PlayerMovement : Movement
         }
     }
 
-    public void ChangeColor(Color newColor)
-    {
-        if (entityRenderer != null && entityRenderer.material != null)
-        {
-            entityRenderer.material.color = newColor;
-            defaultColor = newColor;
-        }
-    }
-
     public override void TakeDamage(float amount)
     {
         base.TakeDamage(amount);

@@ -105,9 +105,4 @@ public class EnemyLOSMovement : EnemyMovement
 
         AttemptJump();
     }
-
-    protected override void OnDrawGizmos()
-    {
-        base.OnDrawGizmos();
-    }
 }
