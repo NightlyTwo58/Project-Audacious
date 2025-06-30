@@ -24,6 +24,8 @@ public class PlayerMovement : Movement
     protected override void Awake()
     {
         base.Awake();
+        Debug.Log(gameObject.name + " start position: " + startPosition);
+
         characterController = GetComponent<CharacterController>();
         if (characterController == null)
         {
@@ -182,10 +184,19 @@ public class PlayerMovement : Movement
 
     protected override void Respawn()
     {
-        base.Respawn();
+        // Temporarily disable the CharacterController to allow direct transform manipulation
+        characterController.enabled = false;
+        base.Respawn(); // This sets transform.position = startPosition;
+        characterController.enabled = true; // Re-enable it
+
         verticalVelocity = Vector3.zero;
         currentKnockbackVelocity = Vector3.zero;
+
+        // Potentially add a small upward nudge to ensure it's not "stuck" in the ground
+        // characterController.Move(Vector3.up * 0.1f); // Adjust 0.1f as needed
+
         UpdateHealthUI();
+        Debug.Log(gameObject.name + " respawned via PlayerMovement. Deaths: " + deaths);
     }
 
     private void UpdateHealthUI()
